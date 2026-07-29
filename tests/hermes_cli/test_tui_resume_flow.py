@@ -1368,6 +1368,99 @@ def test_oneshot_run_agent_resumes_existing_session(monkeypatch):
     assert db_closed == [True]
 
 
+def test_oneshot_continue_prefers_current_workspace(monkeypatch):
+    import hermes_cli.oneshot as oneshot_mod
+
+    calls = []
+
+    class FakeSessionDB:
+        def search_sessions(self, **kwargs):
+            calls.append(kwargs)
+            return [{"id": "workspace-session"}]
+
+        def get_session(self, session_id):
+            return {"id": session_id, "cwd": "/missing"}
+
+        def resolve_session_by_title(self, _title):
+            return None
+
+        def resolve_resume_session_id(self, session_id):
+            return session_id
+
+        def get_resume_conversations(self, _session_id):
+            return ([{"role": "user", "content": "workspace context"}], [])
+
+        def reopen_session(self, _session_id):
+            pass
+
+    monkeypatch.setattr(
+        oneshot_mod,
+        "_resolve_oneshot_workspace_key",
+        lambda: "/workspace/a",
+    )
+
+    session_id, history = oneshot_mod._load_oneshot_resume(
+        FakeSessionDB(),
+        resume_session_id=None,
+        continue_last=True,
+        restore_resume_cwd=False,
+    )
+
+    assert calls == [
+        {"source": "cli", "limit": 1, "workspace_key": "/workspace/a"}
+    ]
+    assert session_id == "workspace-session"
+    assert history == [{"role": "user", "content": "workspace context"}]
+
+
+def test_oneshot_continue_falls_back_to_global_mru(monkeypatch):
+    import hermes_cli.oneshot as oneshot_mod
+
+    calls = []
+
+    class FakeSessionDB:
+        def search_sessions(self, **kwargs):
+            calls.append(kwargs)
+            if "workspace_key" in kwargs:
+                return []
+            return [{"id": "global-session"}]
+
+        def get_session(self, session_id):
+            return {"id": session_id, "cwd": "/missing"}
+
+        def resolve_session_by_title(self, _title):
+            return None
+
+        def resolve_resume_session_id(self, session_id):
+            return session_id
+
+        def get_resume_conversations(self, _session_id):
+            return ([{"role": "user", "content": "global context"}], [])
+
+        def reopen_session(self, _session_id):
+            pass
+
+    monkeypatch.setattr(
+        oneshot_mod,
+        "_resolve_oneshot_workspace_key",
+        lambda: "/workspace/new",
+    )
+
+    session_id, history = oneshot_mod._load_oneshot_resume(
+        FakeSessionDB(),
+        resume_session_id=None,
+        continue_last=True,
+        restore_resume_cwd=False,
+    )
+
+    assert calls == [
+        {"source": "cli", "limit": 1, "workspace_key": "/workspace/new"},
+        {"source": "cli", "limit": 1},
+    ]
+    assert session_id == "global-session"
+    assert history == [{"role": "user", "content": "global context"}]
+
+
 def test_oneshot_run_agent_closes_agent_when_chat_raises(monkeypatch):
     import hermes_cli.oneshot as oneshot_mod
 
