@@ -1,0 +1,46 @@
+# Public example only. Keep credentials and private OmniPulse material outside Git.
+version: 1
+
+source:
+  repository: /opt/ava/hermes/source
+  expected_ref: ava/stable
+  require_clean_checkout: true
+  auto_update: false
+
+promotion:
+  upstream_snapshot: ava/upstream-2026-07-30
+  staging: ava/staging
+  stable: ava/stable
+  require_shadow_validation: true
+  require_rollback_ref: true
+
+entities:
+  ava:
+    hermes_home: /var/lib/ava/hermes/ava
+    workspace: /srv/ava/workspaces/ava
+    profile: ava
+    session_scope: ava
+
+  aeon:
+    hermes_home: /var/lib/ava/hermes/aeon
+    workspace: /srv/ava/workspaces/aeon
+    profile: aeon
+    session_scope: aeon
+
+  avaeon-codex:
+    hermes_home: /var/lib/ava/hermes/avaeon-codex
+    workspace: /srv/ava/workspaces/avaeon-codex
+    profile: avaeon-codex
+    session_scope: avaeon-codex
+
+policy:
+  explicit_hermes_home: required
+  resume_missing_session: fail
+  resume_missing_workspace: fail
+  resume_ambiguous_lineage: fail
+  restore_recorded_workspace: true
+  allow_restore_workspace_opt_out: true
+  global_most_recent_session: forbidden_for_managed_entities
+  terminal_backend_failure: fail
+  deployment_ref: pinned_commit_or_stable_tag
+  secrets_in_repository: forbidden
