@@ -62,10 +62,25 @@ def test_parser_uses_narrow_explicit_surface():
     )
 
     assert args.resume_session_id == "session-1"
-    assert args.continue_last is None
+    assert args.continue_named is None
+    assert args.continue_last is False
     assert args.restore_cwd is False
     assert args.model == "model-1"
     assert args.prompt == "continue work"
+
+
+def test_parser_separates_named_and_latest_continue():
+    named = managed_oneshot.build_parser().parse_args(
+        ["--continue", "AVA planning", "continue work"]
+    )
+    latest = managed_oneshot.build_parser().parse_args(
+        ["--continue-last", "continue work"]
+    )
+
+    assert named.continue_named == "AVA planning"
+    assert named.continue_last is False
+    assert latest.continue_named is None
+    assert latest.continue_last is True
 
 
 def test_parser_rejects_unknown_options():
