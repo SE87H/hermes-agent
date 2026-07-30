@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "status_closure": "not-ready",
+  "candidate_commit": "REPLACE_WITH_EXACT_40_CHARACTER_COMMIT_SHA",
+  "rollback_ref": "REPLACE_WITH_PREVIOUS_STABLE_TAG_OR_COMMIT",
+  "tests": {
+    "ava_runtime": {
+      "status": "not-run",
+      "command": "uv run pytest -q tests/ava_runtime"
+    },
+    "hermes_cli": {
+      "status": "not-run",
+      "command": "uv run pytest -q tests/hermes_cli"
+    },
+    "upstream_relevant": {
+      "status": "not-run",
+      "command": "REPLACE_WITH_RELEVANT_UPSTREAM_TEST_COMMANDS"
+    }
+  },
+  "entities": {
+    "ava": {
+      "doctor": {"status": "not-run"},
+      "identity_smoke": {"status": "not-run"},
+      "shadow_runtime": {"status": "not-run"}
+    },
+    "aeon": {
+      "doctor": {"status": "not-run"},
+      "identity_smoke": {"status": "not-run"},
+      "shadow_runtime": {"status": "not-run"}
+    },
+    "avaeon-codex": {
+      "doctor": {"status": "not-run"},
+      "identity_smoke": {"status": "not-run"},
+      "shadow_runtime": {"status": "not-run"}
+    }
+  },
+  "remaining_gaps": [
+    "Replace every placeholder and run every gate before promotion."
+  ]
+}
