@@ -50,7 +50,8 @@ def test_upstream_comparison_commands_use_z_surface(tmp_path):
     assert ["--resume", "session-1"] == second[1:3]
 
 
-def test_default_command_targets_managed_launcher():
+def test_default_command_targets_managed_launcher(monkeypatch):
+    monkeypatch.delenv("AVA_ENTITY", raising=False)
     mod = _load_smoke_module()
     args = mod.build_parser().parse_args([])
 
