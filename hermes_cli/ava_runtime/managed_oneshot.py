@@ -190,9 +190,12 @@ def run_managed_oneshot(
     toolsets: object = None,
     usage_file: str | None = None,
 ) -> int:
+    from hermes_cli import oneshot as upstream
+
+    _assert_upstream_compatibility(upstream)
+
     identity = ManagedIdentity.from_env()
     identity.activate_workspace()
-
     request = ResumeRequest(
         resume_session_id=resume_session_id,
         continue_last=continue_last,
@@ -202,9 +205,6 @@ def run_managed_oneshot(
         allow_global_fallback=allow_global_fallback,
     )
 
-    from hermes_cli import oneshot as upstream
-
-    _assert_upstream_compatibility(upstream)
     original_run_agent = upstream._run_agent
     upstream._run_agent = _build_managed_run_agent(upstream, request)
     try:
@@ -227,11 +227,14 @@ def build_parser() -> argparse.ArgumentParser:
     target.add_argument(
         "--continue",
         "-c",
-        dest="continue_last",
-        nargs="?",
-        const=True,
-        default=None,
+        dest="continue_named",
         metavar="ID_OR_TITLE",
+        help="Continue an explicit session ID or title.",
+    )
+    target.add_argument(
+        "--continue-last",
+        action="store_true",
+        help="Continue the latest session in AVA_WORKSPACE only.",
     )
     parser.add_argument("--no-restore-cwd", action="store_false", dest="restore_cwd")
     parser.add_argument(
@@ -242,7 +245,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--allow-global-fallback",
         action="store_true",
-        help="Allow bare --continue to leave the current workspace within this entity home.",
+        help="Allow --continue-last to leave the current workspace within this entity home.",
     )
     parser.add_argument("--model")
     parser.add_argument("--provider")
@@ -253,10 +256,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    continue_last: bool | str | None = args.continue_named
+    if args.continue_last:
+        continue_last = True
     return run_managed_oneshot(
         args.prompt,
         resume_session_id=args.resume_session_id,
-        continue_last=args.continue_last,
+        continue_last=continue_last,
         restore_cwd=args.restore_cwd,
         require_recorded_cwd=args.require_recorded_cwd,
         allow_global_fallback=args.allow_global_fallback,
