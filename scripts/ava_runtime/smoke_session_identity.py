@@ -13,6 +13,7 @@ import json
 import os
 import secrets
 import shlex
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -131,14 +132,13 @@ def _emit(result: SmokeResult, *, json_output: bool) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    managed_tmp: tempfile.TemporaryDirectory[str] | None = None
+    temporary_home = not bool(args.hermes_home)
 
     if args.hermes_home:
         hermes_home = Path(args.hermes_home).expanduser().resolve()
         hermes_home.mkdir(parents=True, exist_ok=True)
     else:
-        managed_tmp = tempfile.TemporaryDirectory(prefix="hermes-ava-smoke-")
-        hermes_home = Path(managed_tmp.name).resolve()
+        hermes_home = Path(tempfile.mkdtemp(prefix="hermes-ava-smoke-")).resolve()
 
     if args.workspace:
         workspace = Path(args.workspace).expanduser().resolve()
@@ -238,11 +238,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     _emit(result, json_output=args.json_output)
 
-    if managed_tmp is not None and args.keep_temporary_home:
-        managed_tmp.cleanup = lambda: None  # type: ignore[method-assign]
+    if temporary_home and args.keep_temporary_home:
         print(f"temporary HERMES_HOME retained at {hermes_home}", file=sys.stderr)
-    elif managed_tmp is not None:
-        managed_tmp.cleanup()
+    elif temporary_home:
+        shutil.rmtree(hermes_home, ignore_errors=True)
+        if not args.workspace:
+            shutil.rmtree(workspace, ignore_errors=True)
 
     return 0 if failure is None else 1
 
