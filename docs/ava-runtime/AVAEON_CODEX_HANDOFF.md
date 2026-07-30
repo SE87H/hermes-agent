@@ -56,7 +56,7 @@ git fetch --all --tags --prune
 git checkout --detach <APPROVED_STAGING_COMMIT>
 ```
 
-Use detached HEAD or an exact stable tag for validation. Do not run production from a moving remote branch.
+Use detached HEAD or an exact stable tag for validation. Do not run production from a moving remote branch. The existence of the `ava/stable` branch alone is not approval; only a recorded, tested promotion commit is deployable.
 
 ## 4. Build the controlled environment
 
@@ -72,7 +72,7 @@ If the lockfile or dependencies cannot be reproduced, stop. Do not repair the li
 ## 5. Run static and focused tests
 
 ```bash
-uv run pytest -q tests/ava_runtime/test_doctor.py
+uv run pytest -q tests/ava_runtime
 uv run pytest -q tests/hermes_cli
 ```
 
@@ -98,18 +98,29 @@ Repeat with the corresponding paths for AVA and AEON.
 
 ## 7. Run the real session-identity smoke test
 
-Use the actual configured local/provider runtime, preferably on a disposable state root first:
+Use the actual configured local/provider runtime, preferably on a disposable state root first. The default mode exercises the managed overlay rather than the defective upstream `hermes -z` dispatch:
 
 ```bash
 uv run python scripts/ava_runtime/smoke_session_identity.py \
-  --hermes-command "uv run hermes" \
+  --entity avaeon-codex \
   --workspace /srv/ava/workspaces/avaeon-codex
 ```
 
-Required result:
+For a deliberate comparison against upstream:
+
+```bash
+uv run python scripts/ava_runtime/smoke_session_identity.py \
+  --mode upstream \
+  --hermes-command "uv run hermes" \
+  --entity avaeon-codex \
+  --workspace /srv/ava/workspaces/avaeon-codex
+```
+
+Required managed result:
 
 ```text
 STATUS_CLOSURE=PASS
+mode=managed
 context_restored=true
 stable_session_id=true
 no_session_fork=true
@@ -117,7 +128,31 @@ no_session_fork=true
 
 A failure must not be bypassed by manually copying session data or selecting the newest global session.
 
-## 8. Shadow launch
+## 8. Managed oneshot launch command
+
+Until the upstream dispatch carries the same tested contract, identity-bearing one-shot services use:
+
+```bash
+uv run python -m hermes_cli.ava_runtime.managed_oneshot \
+  --resume <SESSION_ID> \
+  "<PROMPT>"
+```
+
+Other supported selections are explicit:
+
+```bash
+# Continue a session by exact ID or title
+uv run python -m hermes_cli.ava_runtime.managed_oneshot \
+  --continue "<ID_OR_TITLE>" "<PROMPT>"
+
+# Continue latest session in AVA_WORKSPACE only
+uv run python -m hermes_cli.ava_runtime.managed_oneshot \
+  --continue-last "<PROMPT>"
+```
+
+The launcher rejects unknown options and refuses upstream signature drift. It must not be silently replaced with `hermes -z` in a service unit.
+
+## 9. Shadow launch
 
 Launch one disposable/shadow instance with separate ports, logs, and `HERMES_HOME`. Validate:
 
@@ -131,7 +166,7 @@ Launch one disposable/shadow instance with separate ports, logs, and `HERMES_HOM
 - restart persistence
 - clean shutdown and session closure
 
-## 9. Promote and deploy
+## 10. Promote and deploy
 
 Only after all evidence passes:
 
@@ -145,7 +180,7 @@ Only after all evidence passes:
 
 AVA, AEON, and AVAEON Codex must not be migrated simultaneously on the first deployment.
 
-## 10. Rollback
+## 11. Rollback
 
 Before deployment, record:
 
