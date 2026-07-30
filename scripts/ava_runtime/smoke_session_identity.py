@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Black-box smoke test for durable one-shot session identity.
 
-The test performs two real Hermes invocations under an isolated HERMES_HOME.
-It requires a working model/provider configuration. No credential values are
-read or printed by this script.
+The default mode exercises the managed AVA launcher. Use ``--mode upstream``
+only to compare the unmodified Hermes ``-z`` path. The test requires a working
+model/provider configuration. It never reads or prints credential values.
 """
 
 from __future__ import annotations
@@ -22,6 +22,9 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 
+ENTITIES = ("ava", "aeon", "avaeon-codex")
+
+
 @dataclass(frozen=True)
 class Invocation:
     command: list[str]
@@ -33,6 +36,8 @@ class Invocation:
 @dataclass(frozen=True)
 class SmokeResult:
     status: str
+    mode: str
+    entity: str
     session_id: str | None
     first_session_id: str | None
     second_session_id: str | None
@@ -100,9 +105,57 @@ def _base_command(args: argparse.Namespace) -> list[str]:
     return command
 
 
+def _first_command(
+    args: argparse.Namespace,
+    command: list[str],
+    usage_file: Path,
+    prompt: str,
+) -> list[str]:
+    if args.mode == "managed":
+        return [*command, "--usage-file", str(usage_file), prompt]
+    return [*command, "--usage-file", str(usage_file), "-z", prompt]
+
+
+def _resume_command(
+    args: argparse.Namespace,
+    command: list[str],
+    session_id: str,
+    usage_file: Path,
+    prompt: str,
+) -> list[str]:
+    if args.mode == "managed":
+        return [
+            *command,
+            "--resume",
+            session_id,
+            "--usage-file",
+            str(usage_file),
+            prompt,
+        ]
+    return [
+        *command,
+        "--resume",
+        session_id,
+        "--usage-file",
+        str(usage_file),
+        "-z",
+        prompt,
+    ]
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--hermes-command", default="hermes")
+    parser.add_argument("--mode", choices=("managed", "upstream"), default="managed")
+    parser.add_argument(
+        "--entity",
+        choices=ENTITIES,
+        default=os.environ.get("AVA_ENTITY", "").strip().lower() or "avaeon-codex",
+    )
+    parser.add_argument(
+        "--hermes-command",
+        default=f"{shlex.quote(sys.executable)} -m hermes_cli.ava_runtime.managed_oneshot",
+        help="Command prefix. For --mode upstream, pass the normal Hermes command.",
+    )
     parser.add_argument("--model")
     parser.add_argument("--provider")
     parser.add_argument("--toolsets")
@@ -119,6 +172,8 @@ def _emit(result: SmokeResult, *, json_output: bool) -> None:
         print(json.dumps(asdict(result), indent=2, sort_keys=True))
         return
     print(f"STATUS_CLOSURE={result.status.upper()}")
+    print(f"mode={result.mode}")
+    print(f"entity={result.entity}")
     print(f"session_id={result.session_id or ''}")
     print(f"context_restored={str(result.context_restored).lower()}")
     print(f"stable_session_id={str(result.stable_session_id).lower()}")
@@ -138,18 +193,20 @@ def main(argv: list[str] | None = None) -> int:
         hermes_home = Path(args.hermes_home).expanduser().resolve()
         hermes_home.mkdir(parents=True, exist_ok=True)
     else:
-        hermes_home = Path(tempfile.mkdtemp(prefix="hermes-ava-smoke-")).resolve()
+        hermes_home = Path(
+            tempfile.mkdtemp(prefix=f"hermes-{args.entity}-smoke-")
+        ).resolve()
 
     if args.workspace:
         workspace = Path(args.workspace).expanduser().resolve()
         workspace.mkdir(parents=True, exist_ok=True)
     else:
-        workspace = hermes_home.parent / f"{hermes_home.name}-workspace"
+        workspace = hermes_home.parent / f"workspace-{args.entity}-{hermes_home.name}"
         workspace.mkdir(parents=True, exist_ok=True)
 
     env = os.environ.copy()
     env["HERMES_HOME"] = str(hermes_home)
-    env["AVA_ENTITY"] = "avaeon-codex"
+    env["AVA_ENTITY"] = args.entity
     env["AVA_WORKSPACE"] = str(workspace)
 
     codeword = f"AVA-{secrets.token_hex(8).upper()}"
@@ -157,14 +214,17 @@ def main(argv: list[str] | None = None) -> int:
     usage_two = hermes_home / "smoke-usage-2.json"
     command = _base_command(args)
 
-    first_command = [
-        *command,
-        "--usage-file",
-        str(usage_one),
-        "-z",
-        f"Remember the exact codeword {codeword}. Reply with exactly STORED.",
-    ]
-    first = _run(first_command, env=env, cwd=workspace, timeout=args.timeout)
+    first = _run(
+        _first_command(
+            args,
+            command,
+            usage_one,
+            f"Remember the exact codeword {codeword}. Reply with exactly STORED.",
+        ),
+        env=env,
+        cwd=workspace,
+        timeout=args.timeout,
+    )
 
     failure: str | None = None
     first_id: str | None = None
@@ -187,16 +247,18 @@ def main(argv: list[str] | None = None) -> int:
         failure = "first invocation did not report a durable session_id"
 
     if failure is None and first_id:
-        second_command = [
-            *command,
-            "--resume",
-            first_id,
-            "--usage-file",
-            str(usage_two),
-            "-z",
-            "Return only the exact codeword I asked you to remember in this session.",
-        ]
-        second = _run(second_command, env=env, cwd=workspace, timeout=args.timeout)
+        second = _run(
+            _resume_command(
+                args,
+                command,
+                first_id,
+                usage_two,
+                "Return only the exact codeword I asked you to remember in this session.",
+            ),
+            env=env,
+            cwd=workspace,
+            timeout=args.timeout,
+        )
         count_after = _session_count(hermes_home / "state.db")
         if second.returncode != 0:
             failure = f"resume invocation failed ({second.returncode}): {second.stderr.strip()}"
@@ -224,6 +286,8 @@ def main(argv: list[str] | None = None) -> int:
 
     result = SmokeResult(
         status="pass" if failure is None else "fail",
+        mode=args.mode,
+        entity=args.entity,
         session_id=first_id,
         first_session_id=first_id,
         second_session_id=second_id,
