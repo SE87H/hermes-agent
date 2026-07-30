@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -12,9 +13,11 @@ DOCTOR_PATH = ROOT / "scripts" / "ava_runtime" / "doctor.py"
 
 
 def _load_doctor_module():
-    spec = importlib.util.spec_from_file_location("ava_runtime_doctor", DOCTOR_PATH)
+    module_name = "ava_runtime_doctor_test"
+    spec = importlib.util.spec_from_file_location(module_name, DOCTOR_PATH)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
 
