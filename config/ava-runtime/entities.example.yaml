@@ -1,9 +1,11 @@
-# Public example only. Keep credentials and private OmniPulse material outside Git.
+# Public example only. Copy to a protected local path such as
+# /etc/ava/hermes/entities.yaml, then replace the commit placeholder.
+# Keep credentials and private OmniPulse material outside Git.
 version: 1
 
 source:
   repository: /opt/ava/hermes/source
-  expected_ref: ava/stable
+  expected_ref: REPLACE_WITH_EXACT_40_CHARACTER_COMMIT_SHA
   require_clean_checkout: true
   auto_update: false
 
@@ -13,6 +15,9 @@ promotion:
   stable: ava/stable
   require_shadow_validation: true
   require_rollback_ref: true
+
+snapshots:
+  root: /var/backups/ava/hermes-state
 
 entities:
   ava:
