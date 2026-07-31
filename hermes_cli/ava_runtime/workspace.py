@@ -15,6 +15,13 @@ import os
 from pathlib import Path
 
 
+def _restore_terminal_cwd(previous: str | None) -> None:
+    if previous is None:
+        os.environ.pop("TERMINAL_CWD", None)
+    else:
+        os.environ["TERMINAL_CWD"] = previous
+
+
 def activate_process_workspace(
     workspace: str | os.PathLike[str],
     *,
@@ -25,7 +32,8 @@ def activate_process_workspace(
 
     The environment is updated only after ``chdir`` succeeds. If any later
     canonicalization/publication step fails, the prior process directory and
-    environment value are restored before the error is re-raised.
+    environment value are restored. If that rollback itself is impossible, the
+    environment is aligned to the surviving process cwd before failing visibly.
     """
 
     path = Path(workspace).expanduser()
@@ -36,6 +44,7 @@ def activate_process_workspace(
 
     previous_cwd = Path.cwd()
     previous_terminal_cwd = os.environ.get("TERMINAL_CWD")
+    failure_message = enter_message or f"Failed to enter workspace: {path}"
     try:
         os.chdir(path)
         active = Path.cwd().resolve()
@@ -44,10 +53,17 @@ def activate_process_workspace(
     except Exception as exc:
         try:
             os.chdir(previous_cwd)
-        except OSError:
-            pass
-        if previous_terminal_cwd is None:
-            os.environ.pop("TERMINAL_CWD", None)
-        else:
-            os.environ["TERMINAL_CWD"] = previous_terminal_cwd
-        raise RuntimeError(enter_message or f"Failed to enter workspace: {path}") from exc
+        except OSError as rollback_exc:
+            try:
+                surviving_cwd = str(Path.cwd().resolve())
+            except Exception:
+                os.environ.pop("TERMINAL_CWD", None)
+            else:
+                os.environ["TERMINAL_CWD"] = surviving_cwd
+            raise RuntimeError(
+                f"{failure_message}; rollback to {previous_cwd} also failed: "
+                f"{rollback_exc}"
+            ) from exc
+
+        _restore_terminal_cwd(previous_terminal_cwd)
+        raise RuntimeError(failure_message) from exc
