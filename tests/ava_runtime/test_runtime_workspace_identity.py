@@ -9,6 +9,12 @@ from hermes_cli.ava_runtime.identity import ManagedIdentity
 from hermes_cli.ava_runtime.session_context import ResumeRequest, _restore_recorded_cwd
 
 
+@pytest.fixture(autouse=True)
+def _restore_process_cwd(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Production workspace transitions must not leak between tests."""
+    monkeypatch.chdir(Path.cwd())
+
+
 def test_managed_identity_synchronizes_process_and_terminal_workspace(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -37,10 +43,17 @@ def test_managed_identity_does_not_publish_terminal_workspace_when_chdir_fails(
     identity = ManagedIdentity(entity="ava", hermes_home=home, workspace=workspace.resolve())
     monkeypatch.setenv("TERMINAL_CWD", "/previous")
 
-    def fail_chdir(_path: object) -> None:
-        raise OSError("blocked")
+    real_chdir = os.chdir
+    calls = 0
 
-    monkeypatch.setattr(os, "chdir", fail_chdir)
+    def fail_initial_chdir_then_allow_rollback(path: object) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise OSError("blocked")
+        real_chdir(path)
+
+    monkeypatch.setattr(os, "chdir", fail_initial_chdir_then_allow_rollback)
 
     with pytest.raises(RuntimeError, match="Cannot enter AVA_WORKSPACE"):
         identity.activate_workspace()
