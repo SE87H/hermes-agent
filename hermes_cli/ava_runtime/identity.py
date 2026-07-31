@@ -6,6 +6,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from hermes_cli.ava_runtime.workspace import activate_process_workspace
+
 
 ENTITY_ALIASES = {
     "ava": {"ava"},
@@ -72,11 +74,8 @@ class ManagedIdentity:
         return cls(entity=entity, hermes_home=hermes_home, workspace=workspace)
 
     def activate_workspace(self) -> None:
-        try:
-            os.chdir(self.workspace)
-        except OSError as exc:
-            raise RuntimeError(f"Cannot enter AVA_WORKSPACE: {self.workspace}") from exc
-        # Hermes prompt, file, and terminal resolution prefer TERMINAL_CWD.
-        # Publish it only after chdir succeeds so a failed transition leaves the
-        # previous runtime context untouched.
-        os.environ["TERMINAL_CWD"] = str(self.workspace)
+        activate_process_workspace(
+            self.workspace,
+            missing_message=f"AVA_WORKSPACE directory does not exist: {self.workspace}",
+            enter_message=f"Cannot enter AVA_WORKSPACE: {self.workspace}",
+        )
