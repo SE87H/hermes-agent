@@ -1,7 +1,7 @@
 """Atomic process-local workspace transitions for managed AVA runtimes.
 
 Finite CLI/one-shot processes may intentionally move their process working
-directory.  Hermes also exposes the same workspace through ``TERMINAL_CWD``.
+directory. Hermes also exposes the same workspace through ``TERMINAL_CWD``.
 This module is the single write-side seam that keeps those two representations
 coherent and publishes neither when the transition fails.
 
@@ -23,9 +23,9 @@ def activate_process_workspace(
 ) -> Path:
     """Enter *workspace* and publish its canonical path to ``TERMINAL_CWD``.
 
-    The environment is updated only after ``chdir`` succeeds.  If canonical
-    resolution fails after entry, the prior process directory and environment
-    value are restored before the error is re-raised.
+    The environment is updated only after ``chdir`` succeeds. If any later
+    canonicalization/publication step fails, the prior process directory and
+    environment value are restored before the error is re-raised.
     """
 
     path = Path(workspace).expanduser()
@@ -41,7 +41,7 @@ def activate_process_workspace(
         active = Path.cwd().resolve()
         os.environ["TERMINAL_CWD"] = str(active)
         return active
-    except OSError as exc:
+    except Exception as exc:
         try:
             os.chdir(previous_cwd)
         except OSError:
