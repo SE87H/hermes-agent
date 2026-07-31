@@ -135,7 +135,13 @@ def _restore_recorded_cwd(session_meta: dict[str, Any], request: ResumeRequest) 
         raise RuntimeError(
             f"Failed to restore recorded session working directory: {path}"
         ) from exc
-    return str(path.resolve())
+
+    # Runtime prompt construction and file/terminal tools prefer TERMINAL_CWD.
+    # Publish the resolved workspace only after chdir succeeds. A failed resume
+    # therefore leaves both the environment and the durable session untouched.
+    resolved_path = str(path.resolve())
+    os.environ["TERMINAL_CWD"] = resolved_path
+    return resolved_path
 
 
 def resolve_session_context(
