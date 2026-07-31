@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from hermes_cli.ava_runtime.workspace import activate_process_workspace
+
 
 @dataclass(frozen=True)
 class ResumeRequest:
@@ -116,7 +118,10 @@ def _resolve_existing_session(session_db: Any, target: str) -> tuple[str, dict[s
     return canonical_id, session_meta
 
 
-def _restore_recorded_cwd(session_meta: dict[str, Any], request: ResumeRequest) -> str | None:
+def _restore_recorded_cwd(
+    session_meta: dict[str, Any],
+    request: ResumeRequest,
+) -> str | None:
     saved_cwd = str(session_meta.get("cwd") or "").strip()
     if not request.restore_cwd:
         return saved_cwd or None
@@ -127,21 +132,12 @@ def _restore_recorded_cwd(session_meta: dict[str, Any], request: ResumeRequest) 
         return None
 
     path = Path(saved_cwd).expanduser()
-    if not path.is_dir():
-        raise FileNotFoundError(f"Recorded session working directory is unavailable: {path}")
-    try:
-        os.chdir(path)
-    except OSError as exc:
-        raise RuntimeError(
-            f"Failed to restore recorded session working directory: {path}"
-        ) from exc
-
-    # Runtime prompt construction and file/terminal tools prefer TERMINAL_CWD.
-    # Publish the resolved workspace only after chdir succeeds. A failed resume
-    # therefore leaves both the environment and the durable session untouched.
-    resolved_path = str(path.resolve())
-    os.environ["TERMINAL_CWD"] = resolved_path
-    return resolved_path
+    active = activate_process_workspace(
+        path,
+        missing_message=f"Recorded session working directory is unavailable: {path}",
+        enter_message=f"Failed to restore recorded session working directory: {path}",
+    )
+    return str(active)
 
 
 def resolve_session_context(
