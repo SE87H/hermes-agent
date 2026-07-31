@@ -60,10 +60,21 @@ def test_failed_chdir_leaves_process_context_untouched(
     monkeypatch.chdir(caller)
     monkeypatch.setenv("TERMINAL_CWD", "/previous")
 
-    def fail_chdir(_path: object) -> None:
-        raise OSError("blocked")
+    real_chdir = os.chdir
+    calls = 0
 
-    monkeypatch.setattr(workspace_mod.os, "chdir", fail_chdir)
+    def fail_initial_chdir_then_allow_rollback(path: object) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise OSError("blocked")
+        real_chdir(path)
+
+    monkeypatch.setattr(
+        workspace_mod.os,
+        "chdir",
+        fail_initial_chdir_then_allow_rollback,
+    )
 
     with pytest.raises(RuntimeError, match="Failed to enter workspace"):
         activate_process_workspace(target)
