@@ -108,6 +108,21 @@ def test_overlay_restores_upstream_run_agent(monkeypatch, tmp_path):
     original = _compatible_run_agent
     monkeypatch.setattr(upstream, "_run_agent", original)
 
+    def replacement_run_agent(
+        prompt,
+        model=None,
+        provider=None,
+        toolsets=None,
+        use_config_toolsets=True,
+    ):
+        return _compatible_run_agent(
+            prompt,
+            model=model,
+            provider=provider,
+            toolsets=toolsets,
+            use_config_toolsets=use_config_toolsets,
+        )
+
     def fake_run_oneshot(
         prompt,
         model=None,
@@ -116,14 +131,14 @@ def test_overlay_restores_upstream_run_agent(monkeypatch, tmp_path):
         usage_file=None,
     ):
         events.append(("run", prompt, model, provider, toolsets, usage_file))
-        assert upstream._run_agent is not original
+        assert upstream._run_agent is replacement_run_agent
         return 17
 
     monkeypatch.setattr(upstream, "run_oneshot", fake_run_oneshot)
 
     def fake_builder(_upstream, request):
         events.append(("request", request.resume_session_id, request.workspace_key))
-        return _compatible_run_agent
+        return replacement_run_agent
 
     monkeypatch.setattr(managed_oneshot, "_build_managed_run_agent", fake_builder)
 
