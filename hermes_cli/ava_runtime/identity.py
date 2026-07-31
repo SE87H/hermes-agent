@@ -76,3 +76,7 @@ class ManagedIdentity:
             os.chdir(self.workspace)
         except OSError as exc:
             raise RuntimeError(f"Cannot enter AVA_WORKSPACE: {self.workspace}") from exc
+        # Hermes prompt, file, and terminal resolution prefer TERMINAL_CWD.
+        # Publish it only after chdir succeeds so a failed transition leaves the
+        # previous runtime context untouched.
+        os.environ["TERMINAL_CWD"] = str(self.workspace)
