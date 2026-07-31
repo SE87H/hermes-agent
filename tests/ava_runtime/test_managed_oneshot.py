@@ -49,6 +49,21 @@ def test_upstream_compatibility_fails_closed_on_signature_drift():
         managed_oneshot._assert_upstream_compatibility(upstream)
 
 
+def test_usage_metadata_inherits_durable_agent_identity():
+    result = {"final_response": "stored"}
+    agent = SimpleNamespace(
+        session_id="session-42",
+        model="gpt-5.6-sol",
+        provider="openai-codex",
+    )
+
+    attached = managed_oneshot._attach_durable_run_metadata(result, agent)
+
+    assert attached["session_id"] == "session-42"
+    assert attached["model"] == "gpt-5.6-sol"
+    assert attached["provider"] == "openai-codex"
+
+
 def test_parser_uses_narrow_explicit_surface():
     args = managed_oneshot.build_parser().parse_args(
         [

@@ -59,6 +59,14 @@ def _assert_upstream_compatibility(upstream: Any) -> None:
         )
 
 
+def _attach_durable_run_metadata(result: dict[str, Any], agent: Any) -> dict[str, Any]:
+    """Ensure one-shot usage evidence carries the durable agent identity."""
+    result.setdefault("session_id", agent.session_id)
+    result.setdefault("model", agent.model)
+    result.setdefault("provider", agent.provider)
+    return result
+
+
 def _build_managed_run_agent(upstream: Any, request: ResumeRequest):
     def _managed_run_agent(
         prompt: str,
@@ -153,6 +161,7 @@ def _build_managed_run_agent(upstream: Any, request: ResumeRequest):
             agent.tool_gen_callback = None
 
             result = agent.run_conversation(prompt, conversation_history=history)
+            _attach_durable_run_metadata(result, agent)
             return result.get("final_response") or "", result
         finally:
             if agent is not None:
