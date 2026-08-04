@@ -60,7 +60,6 @@ uv run python scripts/ava_runtime/fleet.py doctor all --require-state-db
 
 uv run python scripts/ava_runtime/fleet.py smoke ava
 uv run python scripts/ava_runtime/fleet.py smoke aeon
-uv run python scripts/ava_runtime/fleet.py smoke aeon
 ```
 
 Smoke tests use disposable state by default. `--live-state` is an explicit, visible opt-in and must not be used for the first validation pass.

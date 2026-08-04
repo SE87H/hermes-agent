@@ -124,10 +124,12 @@ The following conditions must produce a visible non-zero failure rather than a s
 9. Run post-promotion identity and workspace checks.
 10. Record the rollback revision.
 
-`auto_update` is permanently false. `hermes update`, self-update, silent update,
-and moving branches as live sources are forbidden. AEON Core may provide
-read-only diagnostics and smokes, but cannot deploy, approve, or mutate its own
-live runtime.
+`auto_update` is permanently false. The managed fleet control plane rejects
+`auto_update: true` and moving references; `hermes update` is forbidden
+operationally. The upstream binary is not globally intercepted outside that
+control plane, so it must not be invoked directly for live updates. AEON Core
+may provide read-only diagnostics and smokes, but cannot deploy, approve, or
+mutate its own live runtime.
 
 ## Scope boundary
 
