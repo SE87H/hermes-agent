@@ -17,11 +17,12 @@ from typing import Any, Mapping
 
 import yaml
 
-from hermes_cli.ava_runtime.identity import ENTITY_ALIASES
+from hermes_cli.ava_runtime.identity import RUNTIME_ENTITY_ALIASES, RUNTIME_ENTITIES
 
 
 SCHEMA_VERSION = 1
-REQUIRED_ENTITIES = frozenset(ENTITY_ALIASES)
+REQUIRED_ENTITIES = RUNTIME_ENTITIES
+OPERATOR_ID = "avaeon-codex"
 _COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 REQUIRED_POLICY = {
     "explicit_hermes_home": "required",
@@ -43,7 +44,7 @@ class FleetConfigError(ValueError):
 
 def _normalized_entity(value: str) -> str:
     normalized = value.strip().lower().replace("_", "-")
-    for entity, aliases in ENTITY_ALIASES.items():
+    for entity, aliases in RUNTIME_ENTITY_ALIASES.items():
         normalized_aliases = {alias.lower().replace("_", "-") for alias in aliases}
         if normalized in normalized_aliases:
             return entity
@@ -70,7 +71,7 @@ def _is_within(path: Path, parent: Path) -> bool:
 
 
 def _path_scoped_to_entity(path: Path, entity: str) -> bool:
-    aliases = {alias.lower().replace("_", "-") for alias in ENTITY_ALIASES[entity]}
+    aliases = {alias.lower().replace("_", "-") for alias in RUNTIME_ENTITY_ALIASES[entity]}
     parts = {part.lower().replace("_", "-") for part in path.parts}
     return bool(parts & aliases)
 
@@ -129,6 +130,7 @@ class EntityConfig:
     def environment(self, source: SourceConfig) -> dict[str, str]:
         return {
             "AVA_ENTITY": self.name,
+            "AVA_OPERATOR_ID": OPERATOR_ID,
             "HERMES_HOME": str(self.hermes_home),
             "AVA_WORKSPACE": str(self.workspace),
             "AVA_HERMES_REPO": str(source.repository),
@@ -183,6 +185,12 @@ class FleetConfig:
                 "require_rollback_ref": self.promotion.require_rollback_ref,
             },
             "policy": dict(self.policy),
+            "identity_types": {
+                "runtime_entities": sorted(REQUIRED_ENTITIES),
+                "operator_id": OPERATOR_ID,
+                "host_ids": ["avaorus", "minisforum"],
+                "instance_pattern": "live|shadow-*|test-*",
+            },
             "snapshots": {"root": str(self.snapshot_root)},
             "entities": {
                 name: {

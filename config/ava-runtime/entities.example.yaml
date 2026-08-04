@@ -32,12 +32,6 @@ entities:
     profile: aeon
     session_scope: aeon
 
-  avaeon-codex:
-    hermes_home: /var/lib/ava/hermes/avaeon-codex
-    workspace: /srv/ava/workspaces/avaeon-codex
-    profile: avaeon-codex
-    session_scope: avaeon-codex
-
 policy:
   explicit_hermes_home: required
   resume_missing_session: fail

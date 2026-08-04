@@ -38,10 +38,8 @@ Example:
 sudo install -d -m 0750 -o "$USER" -g "$USER" \
   /var/lib/ava/hermes/ava \
   /var/lib/ava/hermes/aeon \
-  /var/lib/ava/hermes/avaeon-codex \
   /srv/ava/workspaces/ava \
-  /srv/ava/workspaces/aeon \
-  /srv/ava/workspaces/avaeon-codex
+  /srv/ava/workspaces/aeon
 ```
 
 Existing state must be backed up before migration. Never point two managed entities at the same `HERMES_HOME`.
@@ -78,15 +76,16 @@ uv run pytest -q tests/hermes_cli
 
 Then run any upstream suite required by the changed files. Record commands, commit, and results.
 
-## 6. Run the AVA doctor for each entity
+## 6. Run the AVA doctor for each runtime entity
 
-Example for AVAEON Codex:
+The operator is metadata, not a runtime. Example for AEON:
 
 ```bash
-export AVA_ENTITY=avaeon-codex
+export AVA_ENTITY=aeon
+export AVA_OPERATOR_ID=avaeon-codex
 export AVA_HERMES_REPO=/opt/ava/hermes/source
-export AVA_WORKSPACE=/srv/ava/workspaces/avaeon-codex
-export HERMES_HOME=/var/lib/ava/hermes/avaeon-codex
+export AVA_WORKSPACE=/srv/ava/workspaces/aeon
+export HERMES_HOME=/var/lib/ava/hermes/aeon
 export AVA_HERMES_EXPECTED_REF=<APPROVED_STAGING_COMMIT>
 
 uv run python scripts/ava_runtime/doctor.py \
@@ -102,8 +101,8 @@ Use the actual configured local/provider runtime, preferably on a disposable sta
 
 ```bash
 uv run python scripts/ava_runtime/smoke_session_identity.py \
-  --entity avaeon-codex \
-  --workspace /srv/ava/workspaces/avaeon-codex
+  --entity aeon \
+  --workspace /srv/ava/workspaces/aeon
 ```
 
 For a deliberate comparison against upstream:
@@ -112,8 +111,8 @@ For a deliberate comparison against upstream:
 uv run python scripts/ava_runtime/smoke_session_identity.py \
   --mode upstream \
   --hermes-command "uv run hermes" \
-  --entity avaeon-codex \
-  --workspace /srv/ava/workspaces/avaeon-codex
+  --entity aeon \
+  --workspace /srv/ava/workspaces/aeon
 ```
 
 Required managed result:
@@ -178,7 +177,7 @@ Only after all evidence passes:
 6. switch the service to the pinned stable commit
 7. restart and rerun the doctor and smoke checks
 
-AVA, AEON, and AVAEON Codex must not be migrated simultaneously on the first deployment.
+AVA and AEON must not be migrated simultaneously on the first deployment. AVAEON Codex remains the portable operator and has no live runtime to migrate.
 
 ## 11. Rollback
 

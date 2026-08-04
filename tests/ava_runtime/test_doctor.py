@@ -107,7 +107,7 @@ def test_unscoped_hermes_home_fails(monkeypatch, tmp_path, capsys, doctor_mod):
     )
 
 
-def test_workspace_inside_state_root_fails(monkeypatch, tmp_path, capsys, doctor_mod):
+def test_operator_identity_is_not_a_runtime(monkeypatch, tmp_path, capsys, doctor_mod):
     repo = tmp_path / "repo"
     hermes_home = tmp_path / "state" / "avaeon-codex"
     workspace = hermes_home / "workspace"
@@ -116,26 +116,20 @@ def test_workspace_inside_state_root_fails(monkeypatch, tmp_path, capsys, doctor
 
     monkeypatch.setattr(doctor_mod, "_run_git", _fake_clean_git)
 
-    rc = doctor_mod.main(
-        [
-            "--entity",
-            "avaeon-codex",
-            "--repo",
-            str(repo),
-            "--workspace",
-            str(workspace),
-            "--hermes-home",
-            str(hermes_home),
-            "--json",
-        ]
-    )
-
-    payload = json.loads(capsys.readouterr().out)
-    assert rc == 1
-    assert any(
-        check["name"] == "isolation.workspace" and check["status"] == "error"
-        for check in payload["checks"]
-    )
+    with pytest.raises(SystemExit):
+        doctor_mod.main(
+            [
+                "--entity",
+                "avaeon-codex",
+                "--repo",
+                str(repo),
+                "--workspace",
+                str(workspace),
+                "--hermes-home",
+                str(hermes_home),
+                "--json",
+            ]
+        )
 
 
 def test_missing_entity_fails(monkeypatch, tmp_path, capsys, doctor_mod):

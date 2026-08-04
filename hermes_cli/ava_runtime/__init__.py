@@ -1,4 +1,4 @@
-"""Controlled runtime overlay for AVA, AEON, and AVAEON Codex.
+"""Controlled runtime overlay for AVA and AEON, operated by AVAEON Codex.
 
 The overlay is deliberately narrow. It protects identity-bearing execution
 without turning private entity material into Hermes source code.

@@ -20,7 +20,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
-from hermes_cli.ava_runtime.identity import ENTITY_ALIASES
+from hermes_cli.ava_runtime.identity import RUNTIME_ENTITY_ALIASES
+
+ENTITY_ALIASES = RUNTIME_ENTITY_ALIASES
 
 SCHEMA_VERSION = 1
 

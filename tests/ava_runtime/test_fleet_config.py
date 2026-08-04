@@ -41,7 +41,6 @@ def _raw(tmp_path: Path) -> dict:
         "entities": {
             "ava": {"hermes_home": str(tmp_path / "state" / "ava"), "workspace": str(tmp_path / "workspaces" / "ava"), "profile": "ava", "session_scope": "ava"},
             "aeon": {"hermes_home": str(tmp_path / "state" / "aeon"), "workspace": str(tmp_path / "workspaces" / "aeon"), "profile": "aeon", "session_scope": "aeon"},
-            "avaeon-codex": {"hermes_home": str(tmp_path / "state" / "avaeon-codex"), "workspace": str(tmp_path / "workspaces" / "avaeon-codex"), "profile": "avaeon-codex", "session_scope": "avaeon-codex"},
         },
     }
 
@@ -55,10 +54,10 @@ def _write(tmp_path: Path, raw: dict) -> Path:
 def test_valid_fleet_loads_and_renders_environment(tmp_path):
     path = _write(tmp_path, _raw(tmp_path))
     config = load_fleet_config(path)
-    assert set(config.entities) == {"ava", "aeon", "avaeon-codex"}
-    assert config.entity("avaeon_codex").name == "avaeon-codex"
+    assert set(config.entities) == {"ava", "aeon"}
     env = config.environment("ava")
     assert env["AVA_ENTITY"] == "ava"
+    assert env["AVA_OPERATOR_ID"] == "avaeon-codex"
     assert env["HERMES_HOME"].endswith("/state/ava")
     assert env["AVA_HERMES_EXPECTED_REF"] == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     assert config.raw_sha256 == hashlib.sha256(path.read_bytes()).hexdigest()
@@ -66,7 +65,7 @@ def test_valid_fleet_loads_and_renders_environment(tmp_path):
     assert "OPENAI_API_KEY" not in config.render_shell_environment("aeon")
 
 
-def test_requires_complete_three_entity_fleet(tmp_path):
+def test_requires_complete_runtime_fleet(tmp_path):
     raw = _raw(tmp_path)
     del raw["entities"]["aeon"]
     with pytest.raises(FleetConfigError, match="complete managed fleet"):
@@ -156,4 +155,11 @@ def test_rejects_auto_update(tmp_path):
     raw = _raw(tmp_path)
     raw["source"]["auto_update"] = True
     with pytest.raises(FleetConfigError, match="must remain false"):
+        load_fleet_config(_write(tmp_path, raw))
+
+
+def test_operator_is_metadata_not_a_runtime_entity(tmp_path):
+    raw = _raw(tmp_path)
+    raw["entities"]["avaeon-codex"] = {"hermes_home": str(tmp_path / "state" / "avaeon-codex"), "workspace": str(tmp_path / "workspaces" / "avaeon-codex"), "profile": "avaeon-codex", "session_scope": "avaeon-codex"}
+    with pytest.raises(FleetConfigError, match="unknown entity"):
         load_fleet_config(_write(tmp_path, raw))

@@ -3,17 +3,41 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
 from hermes_cli.ava_runtime.workspace import activate_process_workspace
 
 
-ENTITY_ALIASES = {
+RUNTIME_ENTITY_ALIASES = {
     "ava": {"ava"},
     "aeon": {"aeon"},
-    "avaeon-codex": {"avaeon-codex", "avaeon_codex", "avaeoncodex"},
 }
+RUNTIME_ENTITIES = frozenset(RUNTIME_ENTITY_ALIASES)
+OPERATOR_IDENTITIES = frozenset({"avaeon-codex"})
+HOST_IDENTITIES = frozenset({"avaorus", "minisforum"})
+_INSTANCE_RE = re.compile(r"^(?:live|shadow-[a-z0-9][a-z0-9-]*|test-[a-z0-9][a-z0-9-]*)$")
+
+
+def validate_operator_identity(value: str) -> str:
+    if value.strip().lower() not in OPERATOR_IDENTITIES:
+        raise ValueError("operator_id must be exactly avaeon-codex")
+    return "avaeon-codex"
+
+
+def validate_host_identity(value: str) -> str:
+    normalized = value.strip().lower()
+    if normalized not in HOST_IDENTITIES:
+        raise ValueError("host_id must be avaorus or minisforum")
+    return normalized
+
+
+def validate_instance_identity(value: str) -> str:
+    normalized = value.strip().lower()
+    if not _INSTANCE_RE.fullmatch(normalized):
+        raise ValueError("instance_id must be live, shadow-*, or test-*")
+    return normalized
 
 
 def _normalized_parts(path: Path) -> set[str]:
@@ -21,7 +45,7 @@ def _normalized_parts(path: Path) -> set[str]:
 
 
 def _is_entity_scoped(path: Path, entity: str) -> bool:
-    aliases = {alias.lower().replace("_", "-") for alias in ENTITY_ALIASES[entity]}
+    aliases = {alias.lower().replace("_", "-") for alias in RUNTIME_ENTITY_ALIASES[entity]}
     return bool(_normalized_parts(path) & aliases)
 
 
@@ -34,9 +58,9 @@ class ManagedIdentity:
     @classmethod
     def from_env(cls) -> "ManagedIdentity":
         entity = os.environ.get("AVA_ENTITY", "").strip().lower()
-        if entity not in ENTITY_ALIASES:
+        if entity not in RUNTIME_ENTITY_ALIASES:
             raise RuntimeError(
-                "AVA_ENTITY must be one of: " + ", ".join(sorted(ENTITY_ALIASES))
+                "AVA_ENTITY must be a runtime entity: " + ", ".join(sorted(RUNTIME_ENTITIES))
             )
 
         home_raw = os.environ.get("HERMES_HOME", "").strip()

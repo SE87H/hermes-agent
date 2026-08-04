@@ -22,7 +22,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 
-ENTITIES = ("ava", "aeon", "avaeon-codex")
+ENTITIES = ("ava", "aeon")
 
 
 @dataclass(frozen=True)
@@ -149,7 +149,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--entity",
         choices=ENTITIES,
-        default=os.environ.get("AVA_ENTITY", "").strip().lower() or "avaeon-codex",
+        default=os.environ.get("AVA_ENTITY", "").strip().lower() or "aeon",
     )
     parser.add_argument(
         "--hermes-command",

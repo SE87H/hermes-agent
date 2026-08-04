@@ -2,9 +2,10 @@
 
 Usage:
 
-    AVA_ENTITY=avaeon-codex \
-    HERMES_HOME=/var/lib/ava/hermes/avaeon-codex \
-    AVA_WORKSPACE=/srv/ava/workspaces/avaeon-codex \
+    AVA_ENTITY=aeon \
+    AVA_OPERATOR_ID=avaeon-codex \
+    HERMES_HOME=/var/lib/ava/hermes/aeon \
+    AVA_WORKSPACE=/srv/ava/workspaces/aeon \
     python -m hermes_cli.ava_runtime.managed_oneshot \
         --resume SESSION_ID "Continue the work"
 

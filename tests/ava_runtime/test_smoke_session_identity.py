@@ -57,4 +57,4 @@ def test_default_command_targets_managed_launcher(monkeypatch):
 
     assert args.mode == "managed"
     assert "hermes_cli.ava_runtime.managed_oneshot" in args.hermes_command
-    assert args.entity == "avaeon-codex"
+    assert args.entity == "aeon"

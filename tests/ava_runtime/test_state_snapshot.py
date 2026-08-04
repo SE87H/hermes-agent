@@ -65,8 +65,8 @@ def test_online_backup_is_independent_from_later_source_changes(tmp_path):
 
 def test_tampered_snapshot_is_rejected(tmp_path):
     module = _load_module()
-    home = _home(tmp_path, "avaeon-codex")
-    snapshot = module.create_snapshot(entity="avaeon-codex", hermes_home=home, output_root=tmp_path / "backups")
+    home = _home(tmp_path, "aeon")
+    snapshot = module.create_snapshot(entity="aeon", hermes_home=home, output_root=tmp_path / "backups")
     with (snapshot / "state.db").open("ab") as handle:
         handle.write(b"tamper")
     with pytest.raises(module.SnapshotError, match="checksum mismatch"):

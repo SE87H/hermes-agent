@@ -30,7 +30,7 @@ def _write_config(tmp_path: Path) -> Path:
         "source": {"repository": str(tmp_path / "source"), "expected_ref": "cccccccccccccccccccccccccccccccccccccccc", "require_clean_checkout": True, "auto_update": False},
         "entities": {},
     }
-    for entity in ("ava", "aeon", "avaeon-codex"):
+    for entity in ("ava", "aeon"):
         raw["entities"][entity] = {"hermes_home": str(tmp_path / "state" / entity), "workspace": str(tmp_path / "workspaces" / entity), "profile": entity, "session_scope": entity}
     path = tmp_path / "fleet.yaml"
     path.write_text(yaml.safe_dump(raw, sort_keys=False), encoding="utf-8")
@@ -43,7 +43,7 @@ def test_validate_outputs_hash_and_entities(tmp_path, capsys):
     output = capsys.readouterr().out
     assert rc == 0
     assert "STATUS_CLOSURE=PASS" in output
-    assert "entities=aeon,ava,avaeon-codex" in output
+    assert "entities=aeon,ava" in output
 
 
 def test_env_json_contains_only_non_secret_runtime_bindings(tmp_path, capsys):
@@ -63,8 +63,8 @@ def test_doctor_all_runs_each_entity_with_isolated_environment(tmp_path, monkeyp
     monkeypatch.setattr(module, "_run_child", lambda command, *, env, cwd: events.append((command, env.copy(), cwd)) or 0)
     rc = module.main(["--config", str(config), "doctor", "all", "--require-state-db"])
     assert rc == 0
-    assert [event[1]["AVA_ENTITY"] for event in events] == ["aeon", "ava", "avaeon-codex"]
-    assert len({event[1]["HERMES_HOME"] for event in events}) == 3
+    assert [event[1]["AVA_ENTITY"] for event in events] == ["aeon", "ava"]
+    assert len({event[1]["HERMES_HOME"] for event in events}) == 2
     assert all("--require-state-db" in event[0] and "--require-clean" in event[0] for event in events)
 
 
@@ -72,10 +72,10 @@ def test_smoke_defaults_to_disposable_state(tmp_path, monkeypatch):
     module = _load_module()
     captured = {}
     monkeypatch.setattr(module, "_run_child", lambda command, *, env, cwd: captured.update(command=command, env=env, cwd=cwd) or 0)
-    rc = module.main(["--config", str(_write_config(tmp_path)), "smoke", "avaeon-codex"])
+    rc = module.main(["--config", str(_write_config(tmp_path)), "smoke", "aeon"])
     assert rc == 0
     assert "--hermes-home" not in captured["command"]
-    assert captured["env"]["AVA_ENTITY"] == "avaeon-codex"
+    assert captured["env"]["AVA_ENTITY"] == "aeon"
 
 
 def test_smoke_live_state_is_explicit(tmp_path, monkeypatch):
@@ -125,7 +125,7 @@ def test_snapshot_all_uses_configured_backup_root(tmp_path, monkeypatch):
     events = []
     monkeypatch.setattr(module, "_run_child", lambda command, *, env, cwd: events.append((command, env.copy())) or 0)
     assert module.main(["--config", str(config), "snapshot", "all"]) == 0
-    assert [event[1]["AVA_ENTITY"] for event in events] == ["aeon", "ava", "avaeon-codex"]
+    assert [event[1]["AVA_ENTITY"] for event in events] == ["aeon", "ava"]
     for command, _env in events:
         root_index = command.index("--output-root")
         assert command[root_index + 1] == str((tmp_path / "backups").resolve())

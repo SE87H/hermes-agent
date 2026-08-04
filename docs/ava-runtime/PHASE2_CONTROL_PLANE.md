@@ -24,7 +24,7 @@ uv run python scripts/ava_runtime/fleet.py validate
 
 The validator refuses:
 
-- an incomplete AVA/AEON/AVAEON fleet;
+- an incomplete AVA/AEON runtime fleet;
 - shared or nested `HERMES_HOME` roots;
 - shared or nested workspaces;
 - a workspace inside any entity's state root;
@@ -40,13 +40,13 @@ The validator refuses:
 For inspection:
 
 ```bash
-uv run python scripts/ava_runtime/fleet.py env avaeon-codex
+uv run python scripts/ava_runtime/fleet.py env aeon
 ```
 
 For a managed one-shot invocation:
 
 ```bash
-uv run python scripts/ava_runtime/fleet.py oneshot avaeon-codex -- \
+AVA_OPERATOR_ID=avaeon-codex uv run python scripts/ava_runtime/fleet.py oneshot aeon -- \
   --resume <SESSION_ID> \
   "Continue the work"
 ```
@@ -60,7 +60,7 @@ uv run python scripts/ava_runtime/fleet.py doctor all --require-state-db
 
 uv run python scripts/ava_runtime/fleet.py smoke ava
 uv run python scripts/ava_runtime/fleet.py smoke aeon
-uv run python scripts/ava_runtime/fleet.py smoke avaeon-codex
+uv run python scripts/ava_runtime/fleet.py smoke aeon
 ```
 
 Smoke tests use disposable state by default. `--live-state` is an explicit, visible opt-in and must not be used for the first validation pass.
@@ -102,7 +102,7 @@ Promotion requires all of the following to be `pass`:
 - `tests.upstream_relevant`;
 - doctor, identity smoke, and shadow runtime for AVA;
 - doctor, identity smoke, and shadow runtime for AEON;
-- doctor, identity smoke, and shadow runtime for AVAEON Codex;
+- operator metadata is recorded separately and is not a runtime gate;
 - an empty `remaining_gaps` array;
 - a candidate commit exactly equal to checkout `HEAD`;
 - a clean working tree;

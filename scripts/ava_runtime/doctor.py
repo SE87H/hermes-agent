@@ -17,11 +17,9 @@ from pathlib import Path
 from typing import Iterable
 
 
-ENTITY_ALIASES = {
-    "ava": {"ava"},
-    "aeon": {"aeon"},
-    "avaeon-codex": {"avaeon-codex", "avaeon_codex", "avaeoncodex"},
-}
+from hermes_cli.ava_runtime.identity import RUNTIME_ENTITY_ALIASES
+
+ENTITY_ALIASES = RUNTIME_ENTITY_ALIASES
 
 
 @dataclass(frozen=True)

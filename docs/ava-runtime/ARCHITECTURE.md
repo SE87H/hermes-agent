@@ -1,6 +1,6 @@
 # AVA Hermes Runtime Architecture
 
-This document defines the controlled Hermes distribution used by AVA, AEON, and AVAEON Codex. It is an operational contract, not a replacement for upstream Hermes.
+This document defines the controlled Hermes distribution for the AVA and AEON runtimes. AVAEON Codex is the portable operator, not a runtime. It is an operational contract, not a replacement for upstream Hermes.
 
 ## Purpose
 
@@ -27,7 +27,20 @@ Rollback is the inverse trace:
 
 ### Distinction
 
-AVA, AEON, and AVAEON Codex are separate runtime identities. Each must have its own:
+Runtime entities are only `ava` and `aeon`. The canonical identity types are:
+
+- `RuntimeEntity := ava | aeon`
+- `OperatorIdentity := avaeon-codex`
+- `HostIdentity := avaorus | minisforum`
+- `InstanceIdentity := live | shadow-* | test-*`
+
+AVAEON Codex carries operator metadata, isolated worktrees, harnesses, reports,
+manifests, and disposable shadow roots. It is excluded from runtime quorum,
+promotion gates, gateway/Telegram/service inventory, `state.db`, and permanent
+snapshot obligations. A runtime launch always sets `AVA_ENTITY` to `ava` or
+`aeon`; `operator_id` is separate metadata.
+
+Each runtime must have its own:
 
 - `HERMES_HOME`
 - durable session namespace
@@ -63,7 +76,7 @@ A valid deployment must prove:
 - recorded workspace is restored, or the run fails visibly
 - an explicit workspace opt-out remains possible
 - skills, rules, memory policy, provider, and terminal backend match the requested runtime
-- all three entities remain isolated
+- both runtime entities remain isolated; operator work is disposable and separate
 - rollback to the previous stable revision is executable
 
 ## Runtime policy
@@ -78,10 +91,8 @@ Recommended layout on the Minisforum:
 /opt/ava/hermes/releases/<commit>      # optional immutable release views
 /var/lib/ava/hermes/ava                # AVA HERMES_HOME
 /var/lib/ava/hermes/aeon               # AEON HERMES_HOME
-/var/lib/ava/hermes/avaeon-codex       # AVAEON Codex HERMES_HOME
 /srv/ava/workspaces/ava
 /srv/ava/workspaces/aeon
-/srv/ava/workspaces/avaeon-codex
 ```
 
 Paths may differ, but isolation and explicit launch configuration are mandatory.
@@ -102,16 +113,21 @@ The following conditions must produce a visible non-zero failure rather than a s
 
 ## Update workflow
 
-1. Create a dated upstream snapshot at a reviewed upstream commit.
+1. Fetch an upstream snapshot at a reviewed upstream commit.
 2. Compare that snapshot with the currently deployed stable revision.
-3. Integrate into `ava/staging`.
+3. Integrate into `ava/staging` in an isolated candidate.
 4. Reapply or retire AVA patches deliberately; never assume they still apply.
-5. Run unit, integration, and AVA runtime smoke tests.
-6. Deploy staging only to a disposable or shadow runtime.
-7. Promote the exact tested commit to `ava/stable`.
-8. Deploy the pinned stable commit to the Minisforum.
-9. Run post-deployment identity and workspace checks.
+5. Run unit, integration, and runtime smoke tests for `ava`/`aeon`.
+6. Validate only a disposable or shadow runtime.
+7. Snapshot and prove rollback independently.
+8. Obtain explicit operator approval, then promote the exact tested commit.
+9. Run post-promotion identity and workspace checks.
 10. Record the rollback revision.
+
+`auto_update` is permanently false. `hermes update`, self-update, silent update,
+and moving branches as live sources are forbidden. AEON Core may provide
+read-only diagnostics and smokes, but cannot deploy, approve, or mutate its own
+live runtime.
 
 ## Scope boundary
 

@@ -33,7 +33,7 @@ def _config(tmp_path: Path):
         "source": {"repository": str(tmp_path / "source"), "expected_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "require_clean_checkout": True, "auto_update": False},
         "entities": {},
     }
-    for entity in ("ava", "aeon", "avaeon-codex"):
+    for entity in ("ava", "aeon"):
         raw["entities"][entity] = {"hermes_home": str(tmp_path / "state" / entity), "workspace": str(tmp_path / "workspaces" / entity), "profile": entity, "session_scope": entity}
     path = tmp_path / "fleet.yaml"
     path.write_text(yaml.safe_dump(raw, sort_keys=False), encoding="utf-8")
@@ -48,7 +48,7 @@ def _report() -> dict:
         "candidate_commit": "dddddddddddddddddddddddddddddddddddddddd",
         "rollback_ref": "stable-previous",
         "tests": {"ava_runtime": {"status": "pass", "command": "pytest tests/ava_runtime"}, "hermes_cli": {"status": "pass", "command": "pytest tests/hermes_cli"}, "upstream_relevant": {"status": "pass", "command": "pytest relevant"}},
-        "entities": {"ava": dict(entity_gate), "aeon": dict(entity_gate), "avaeon-codex": dict(entity_gate)},
+        "entities": {"ava": dict(entity_gate), "aeon": dict(entity_gate)},
         "remaining_gaps": [],
     }
 
@@ -77,7 +77,7 @@ def test_build_manifest_closes_candidate_and_rollback(monkeypatch, tmp_path):
     assert manifest["source"]["candidate_commit"] == "dddddddddddddddddddddddddddddddddddddddd"
     assert manifest["source"]["rollback_commit"] == "ffffffffffffffffffffffffffffffffffffffff"
     assert manifest["evidence"]["fleet_config_sha256"] == config.raw_sha256
-    assert set(manifest["evidence"]["entities"]) == {"ava", "aeon", "avaeon-codex"}
+    assert set(manifest["evidence"]["entities"]) == {"ava", "aeon"}
 
 
 def test_report_rejects_any_failed_entity_gate():
@@ -88,7 +88,7 @@ def test_report_rejects_any_failed_entity_gate():
         module._validate_report(report)
 
 
-def test_report_requires_all_three_entities():
+def test_report_requires_all_runtime_entities():
     module = _load_module()
     report = _report()
     del report["entities"]["ava"]

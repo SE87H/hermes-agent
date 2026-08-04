@@ -28,11 +28,6 @@
       "identity_smoke": {"status": "not-run"},
       "shadow_runtime": {"status": "not-run"}
     },
-    "avaeon-codex": {
-      "doctor": {"status": "not-run"},
-      "identity_smoke": {"status": "not-run"},
-      "shadow_runtime": {"status": "not-run"}
-    }
   },
   "remaining_gaps": [
     "Replace every placeholder and run every gate before promotion."
